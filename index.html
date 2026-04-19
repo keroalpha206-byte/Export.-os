@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Export OS</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        import { useState } from "react";
+
+// ─── DATA ─────���──────────────────────────────────────────────────────────────
+
+const MODULES = [
+  { id: "dashboard",    icon: "⬡", label: "Command Center" },
+  { id: "legal",        icon: "⚖", label: "Legal & Registration" },
+  { id: "tax",          icon: "📊", label: "Tax & Nürnberg" },
+  { id: "banking",      icon: "🏦", label: "Banking & FX" },
+  { id: "insurance",    icon: "🛡", label: "Insurance" },
+  { id: "suppliers",    icon: "🏭", label: "Mega Suppliers" },
+  { id: "pricing",      icon: "💡", label: "Price Intelligence" },
+  { id: "logistics",    icon: "🚢", label: "Logistics Engine" },
+  { id: "customs",      icon: "📋", label: "Customs & Docs" },
+  { id: "website",      icon: "🌐", label: "Website & Brand" },
+  { id: "aiagents",     icon: "🤖", label: "AI Agents Stack" },
+  { id: "timeline",     icon: "📅", label: "Launch Timeline" },
+  { id: "egypt",        icon: "🇪🇬", label: "Egypt Operations" },
+  { id: "calculator",   icon: "🧮", label: "Deal Calculator" },
+];
+
+const TIMELINE = [
+  { day: "Day 1", title: "Business Registration", tasks: ["Gewerbeanmeldung at local Ordnungsamt (€30)", "Apply for Steuernummer at Finanzamt Nürnberg", "Apply for USt-IdNr (VAT number)", "Open Wise Business account online", "Register with IHK Nürnberg (mandatory)"], status: "critical" },
+  { day: "Day 2", title: "Banking & Digital Setup", tasks: ["Activate Wise Business multi-currency", "Open N26 Business as backup account", "Set up Revolut Business for FX hedging", "Configure Anthropic API key for AI agents", "Register domain (yourcompany.de + .com)"], status: "critical" },
+  { day: "Day 3", title: "Insurance & Compliance", tasks: ["Apply for Betriebshaftpflicht (business liability)", "Register for cargo insurance via Allianz Trade", "Apply for Transportversicherung (transit insurance)", "Set up ATLAS export account via freight forwarder", "Register with AHK (German Arab Chamber)"], status: "high" },
+  { day: "Day 4", title: "Supplier Outreach Begins", tasks: ["Send RFQ emails to 20+ German wholesalers", "Register on Ankorstore B2B platform", "Register on Faire wholesale platform", "Contact Beiersdorf trade dept for account", "Contact Henkel distributor for wholesale access"], status: "high" },
+  { day: "Day 5", title: "Egypt Partner Brief", tasks: ["Full product brief to Egyptian partner", "Request list of EDA-registered products", "Confirm 20 seller targets and deposits", "Sign partnership agreement (Claude-drafted)", "Agree commission structure and payment terms"], status: "critical" },
+  { day: "Day 6", title: "AI Stack Activation", tasks: ["Configure Claude API workflows", "Set up Zapier automation sequences", "Build Notion deal tracking database", "Configure email outreach sequences", "Set up margin calculator in Airtable"], status: "high" },
+  { day: "Day 7", title: "Website Launch", tasks: ["Deploy website on Vercel (Arabic + German)", "Configure Shopify store (Arabic)", "Set up payment gateway (Stripe + Paymob Egypt)", "Upload first product catalogue", "Go live on Instagram + TikTok Arabic accounts"], status: "high" },
+  { day: "Day 8-10", title: "First Deals Close", tasks: ["Partner confirms first 10 seller deposits", "Receive deposits via Wise SWIFT transfer", "Finalize supplier orders with QC requirements", "Book freight forwarder consolidation slot", "Prepare all export documents via AI"], status: "critical" },
+  { day: "Day 11-14", title: "Sourcing & Consolidation", tasks: ["Place all supplier purchase orders", "Suppliers deliver to consolidation warehouse", "QC inspection (spot check 10% of units)", "Pack and label per seller color code", "EUR.1 certificate from IHK Nürnberg"], status: "high" },
+  { day: "Day 15-21", title: "First Shipment", tasks: ["Cargo handed to freight forwarder", "Export declaration filed (Ausfuhranmeldung)", "MRN confirmed — VAT refund clock starts", "Send full doc package to Cairo customs broker", "File first monthly VAT return"], status: "critical" },
+  { day: "Day 22-50", title: "Transit & Close", tasks: ["Monitor shipment tracking daily", "Recruit Month 2 sellers in parallel", "Vessel arrives Alexandria Day 33-37", "Egyptian customs clearance (5-8 days)", "Delivery to all 20 sellers + collect balances"], status: "medium" },
+];
+
+const SUPPLIERS_DE = [
+  { name: "Beiersdorf AG", brands: ["Nivea", "Eucerin", "Hansaplast", "La Prairie"], category: "Skin Care", city: "Hamburg", moq: "€10,000", contact: "trade@beiersdorf.com", margin: "18-22%", website: "beiersdorf.com/trade" },
+  { name: "Henkel AG & Co. KGaA", brands: ["Schwarzkopf", "Syoss", "Fa", "Schauma"], category: "Hair & Body", city: "Düsseldorf", moq: "€8,000", contact: "trade.de@henkel.com", margin: "16-20%", website: "henkel.com/trade" },
+  { name: "Cosnova GmbH", brands: ["essence", "Catrice"], category: "Colour Cosmetics", city: "Sulzbach", moq: "€3,000", contact: "b2b@cosnova.com", margin: "20-28%", website: "cosnova.com/b2b" },
+  { name: "Dr. Wolff Group", brands: ["Alpecin", "Plantur", "Biotin"], category: "Hair Care", city: "Bielefeld", moq: "€5,000", contact: "export@drwolffgroup.com", margin: "20-25%", website: "drwolffgroup.com" },
+  { name: "Weleda AG", brands: ["Weleda", "Calendula", "Skin Food"], category: "Natural/Organic", city: "Schwäbisch Gmünd", moq: "€4,000", contact: "trade@weleda.de", margin: "22-28%", website: "weleda.de/trade" },
+  { name: "Marken Kontor GmbH", brands: ["Multi-brand overstock"], category: "Parallel Import", city: "Hamburg", moq: "€2,000", contact: "info@marken-kontor.de", margin: "28-40%", website: "marken-kontor.de" },
+  { name: "Kosmetik Großhandel DE", brands: ["All major brands"], category: "General Wholesale", city: "Frankfurt", moq: "€1,500", contact: "export@kosmetik-gh.de", margin: "20-30%", website: "kosmetik-grosshandel.de" },
+  { name: "Sebamed / Bayer Consumer", brands: ["Sebamed", "Bepanthen"], category: "Derma Care", city: "Leverkusen", moq: "€6,000", contact: "consumer@bayer.com", margin: "18-24%", website: "bayer.com/consumer" },
+  { name: "Restposten.de Kosmetik", brands: ["Mixed overstock premium"], category: "Overstock Deals", city: "Online DE", moq: "€500", contact: "via platform", margin: "35-50%", website: "restposten.de" },
+  { name: "dm-drogerie markt B2B", brands: ["Balea", "alverde", "alwedra"], category: "Private Label", city: "Karlsruhe", moq: "€5,000", contact: "b2b@dm.de", margin: "30-40%", website: "dm.de/b2b" },
+];
+
+const SUPPLIERS_FR = [
+  { name: "L'Oréal Groupe Export", brands: ["L'Oréal Paris", "Garnier", "Maybelline", "Kérastase"], category: "Full Range", city: "Paris", moq: "€15,000", contact: "export@loreal.com", margin: "15-20%", website: "loreal.com/trade" },
+  { name: "Pierre Fabre Export", brands: ["Avène", "Ducray", "A-Derma", "René Furterer"], category: "Derma / Pharmacy", city: "Castres", moq: "€8,000", contact: "international@pierre-fabre.com", margin: "22-28%", website: "pierre-fabre.com/export" },
+  { name: "Clarins Export", brands: ["Clarins", "My Blend"], category: "Premium Skin", city: "Paris", moq: "€12,000", contact: "export@clarins.com", margin: "20-25%", website: "clarins.com/wholesale" },
+  { name: "Caudalie Export", brands: ["Caudalie", "Vinopure"], category: "Natural Premium", city: "Bordeaux", moq: "€6,000", contact: "b2b@caudalie.com", margin: "24-30%", website: "caudalie.com/pro" },
+  { name: "Bioderma Export", brands: ["Bioderma", "Institut Esthederm"], category: "Derma Care", city: "Lyon", moq: "€7,000", contact: "export@bioderma.com", margin: "22-26%", website: "bioderma.com/pro" },
+  { name: "Phyts / Cattier Export", brands: ["Cattier", "Phyts", "Ladrôme"], category: "Organic / Natural", city: "Arles", moq: "€3,000", contact: "export@cattier.com", margin: "28-35%", website: "cattier.com/wholesale" },
+  { name: "Cosmetics Valley Wholesale", brands: ["Multi-brand French"], category: "B2B Platform", city: "Chartres", moq: "€5,000", contact: "via platform", margin: "20-30%", website: "cosmetics-valley.com" },
+  { name: "France Import Export Cosmetiques", brands: ["Mixed French brands"], category: "Parallel Import", city: "Paris", moq: "€2,000", contact: "contact@fiec.fr", margin: "30-40%", website: "fiec.fr" },
+];
+
+const PRICE_TOOLS = [
+  { name: "Idealo.de", type: "Price Comparison", use: "Find lowest German retail prices for benchmarking", url: "idealo.de", free: true },
+  { name: "Geizhals.de", type: "Price Tracker", use: "Track price history, set alerts on products", url: "geizhals.de", free: true },
+  { name: "Keepa.com", type: "Amazon Price History", use: "Track Amazon DE price drops on cosmetics", url: "keepa.com", free: true },
+  { name: "Ankorstore", type: "B2B Wholesale", use: "Buy from European brands at wholesale, low MOQ", url: "ankorstore.com", free: true },
+  { name: "Faire.com", type: "B2B Marketplace", use: "Discover independent German/French brands wholesale", url: "faire.com", free: true },
+  { name: "Restposten.de", type: "Overstock Deals", use: "Find clearance cosmetics at 50-70% below wholesale", url: "restposten.de", free: true },
+  { name: "Alibaba.com (DE filter)", type: "Global Wholesale", use: "Filter Germany suppliers, compare export prices", url: "alibaba.com", free: true },
+  { name: "Helium10 (adapted)", type: "Market Intelligence", use: "Find trending products, demand signals", url: "helium10.com", free: false },
+  { name: "PriceSpy.de", type: "Price Monitor", use: "Monitor competitor retail prices in Germany", url: "pricespy.de", free: true },
+  { name: "BeauteTrade", type: "Beauty B2B", use: "Specialized beauty wholesale platform, MOQ comparison", url: "beautetrade.com", free: true },
+  { name: "Wholesale Central EU", type: "EU Wholesale", use: "Find verified EU cosmetics wholesalers", url: "wholesalecentral.eu", free: true },
+  { name: "Mintel GNPD", type: "Product Intelligence", use: "New product launches, trend data for Egypt targeting", url: "mintel.com", free: false },
+];
+
+const AI_STACK = [
+  { tool: "Claude (Anthropic)", role: "Core Intelligence", tasks: ["Contract drafting", "Supplier outreach emails", "Market research", "Document generation", "Arabic translations", "Deal analysis"], cost: "€20/mo", priority: "Essential" },
+  { tool: "Zapier", role: "Automation Engine", tasks: ["Email follow-up sequences", "Invoice triggers", "Supplier response tracking", "Payment alerts", "Slack notifications"], cost: "€49/mo", priority: "Essential" },
+  { tool: "Notion AI", role: "Operations Hub", tasks: ["Deal pipeline CRM", "Seller database", "Supplier tracker", "Document storage", "Task management"], cost: "€16/mo", priority: "Essential" },
+  { tool: "Make (Integromat)", role: "Advanced Automation", tasks: ["Multi-step workflows", "API connections", "Data sync between tools", "Automated reporting"], cost: "€16/mo", priority: "High" },
+  { tool: "Perplexity Pro", role: "Market Research", tasks: ["Real-time price checking", "Competitor analysis", "News monitoring", "Supplier research"], cost: "€20/mo", priority: "High" },
+  { tool: "ChatPDF / Claude Docs", role: "Document Processing", tasks: ["Read supplier catalogues", "Extract price lists", "Analyse contracts", "Process invoices"], cost: "€0", priority: "High" },
+  { tool: "Canva Pro (Arabic)", role: "Visual Content", tasks: ["Arabic product cards", "Social media posts", "Seller pitch decks", "Package labels"], cost: "€13/mo", priority: "Medium" },
+  { tool: "Airtable", role: "Financial Tracking", tasks: ["Margin calculator", "Order tracking", "Seller payments", "VAT records"], cost: "€20/mo", priority: "Medium" },
+  { tool: "Calendly", role: "Scheduling", tasks: ["Seller meetings", "Supplier calls", "Partner sync calls"], cost: "€8/mo", priority: "Low" },
+  { tool: "Wise Business API", role: "Payments", tasks: ["Multi-currency transfers", "FX rate monitoring", "Invoice payments", "Batch payments"], cost: "Fees only", priority: "Essential" },
+];
+
+const BANKS = [
+  { name: "Wise Business", type: "Primary", features: ["EUR/EGP/GBP/USD accounts", "Real exchange rate", "Batch payments", "SWIFT & SEPA", "API access", "Debit card"], cost: "€0 monthly + 0.4% FX", best: "International transfers" },
+  { name: "N26 Business", type: "Secondary DE", features: ["German IBAN", "Free Mastercard", "Mobile-first", "Instant notifications", "EUR only"], cost: "€0 monthly", best: "Domestic German payments" },
+  { name: "Revolut Business", type: "FX Hedging", features: ["25 currencies", "FX exchange at interbank", "Spending analytics", "Team cards", "Payroll"], cost: "€25/mo (Grow)", best: "FX management + hedging" },
+  { name: "Commerzbank DE", type: "Traditional Backup", features: ["Full German banking", "Trade finance", "Letter of Credit", "SWIFT", "Filiale in Nürnberg"], cost: "€12.90/mo", best: "Trade finance & LC" },
+  { name: "Paymob (Egypt)", type: "Egypt Collections", features: ["EGP collection", "Card payments", "Mobile wallets", "Installments", "API"], cost: "Transaction fees", best: "Collecting from Egyptian sellers" },
+];
+
+const INSURANCE = [
+  { type: "Betriebshaftpflicht", provider: "Allianz / HDI", coverage: "Business liability — if products cause harm to third parties", cost: "€200-400/year", mandatory: true },
+  { type: "Transportversicherung", provider: "Allianz Trade / Atradius", coverage: "Cargo in transit Germany → Egypt, covers loss/damage/theft", cost: "0.3-0.5% of cargo value per shipment", mandatory: true },
+  { type: "Kreditversicherung", provider: "Atradius / Coface", coverage: "Trade credit insurance — protects if Egyptian partner defaults on payment", cost: "0.2-0.5% of insured turnover/year", mandatory: false },
+  { type: "Rechtsschutzversicherung", provider: "ARAG / Roland", coverage: "Legal protection — covers disputes with suppliers, partners, customs", cost: "€400-800/year", mandatory: false },
+  { type: "Berufshaftpflicht", provider: "AXA / Hiscox", coverage: "Professional liability — covers advice errors in trading role", cost: "€300-600/year", mandatory: false },
+  { type: "Produkthaftpflicht", provider: "Zurich / Allianz", coverage: "Product liability — if exported product causes harm in Egypt", cost: "€300-700/year", mandatory: true },
+];
+
+const TAX_CALENDAR = [
+  { month: "Jan 10", task: "UStVA (Dec)", detail: "File December VAT return via ELSTER", type: "VAT" },
+  { month: "Jan 10", task: "Vorauszahlung Q4", detail: "Q4 trade tax prepayment due", type: "Trade" },
+  { month: "Feb 10", task: "UStVA (Jan)", detail: "File January VAT return", type: "VAT" },
+  { month: "Mar 10", task: "UStVA (Feb)", detail: "File February VAT return", type: "VAT" },
+  { month: "Apr 10", task: "UStVA (Mar)", detail: "File March VAT return", type: "VAT" },
+  { month: "Apr 10", task: "Vorauszahlung Q1", detail: "Q1 income tax + trade tax prepayment", type: "Income" },
+  { month: "May 31", task: "Einkommensteuererklärung", detail: "Annual income tax return deadline (with Steuerberater: July 31)", type: "Income" },
+  { month: "Jun 10", task: "UStVA (May)", detail: "File May VAT return", type: "VAT" },
+  { month: "Jul 10", task: "Vorauszahlung Q2", detail: "Q2 income + trade tax prepayment", type: "Income" },
+  { month: "Oct 10", task: "Vorauszahlung Q3", detail: "Q3 income + trade tax prepayment", type: "Income" },
+  { month: "Monthly 10th", task: "UStVA Monthly", detail: "Monthly VAT return — CRITICAL for export refund cycle", type: "VAT" },
+];
+
+const NURNBERG_SPECIFICS = [
+  { item: "Finanzamt Nürnberg-Nord", detail: "Main tax office for Nürnberg North districts. Apply for Steuernummer + USt-IdNr here.", address: "Nürnberg-Nord, Am Stadtpark 1", action: "Visit Day 1" },
+  { item: "Finanzamt Nürnberg-Süd", detail: "For South Nürnberg districts. Same services.", address: "Nürnberg-Süd, Regensburger Str. 350", action: "Visit Day 1 (if South)" },
+  { item: "IHK Nürnberg für Mittelfranken", detail: "Mandatory registration. Issues EUR.1 certificates and Certificates of Origin for your exports.", address: "Hauptmarkt 25-27, 90403 Nürnberg", action: "Register Day 1" },
+  { item: "Ordnungsamt Nürnberg", detail: "Gewerbeanmeldung (trade registration) — €30 fee. Bring ID + address proof.", address: "Unschlittplatz 7a, 90403 Nürnberg", action: "Visit Day 1" },
+  { item: "Gewerbesteuer Nürnberg", detail: "Nürnberg Hebesatz: 467% — effective trade tax rate ~16.3%. Higher than average German city. Plan tax accordingly.", address: "N/A — paid via Finanzamt", action: "Budget 16.3% trade tax" },
+  { item: "Zollamt Nürnberg", detail: "Customs office for export declarations. Your freight forwarder files ATLAS here on your behalf.", address: "Regensburger Str. 119, 90478 Nürnberg", action: "Forwarder handles" },
+  { item: "AHK Egypt (Cairo)", detail: "German Arab Chamber of Commerce. Assists with Egypt market entry, EDA registration support, and Arabic legal docs.", address: "Cairo, Egypt", action: "Register Week 1" },
+  { item: "Bayern Export Program", detail: "Free export consulting from Bayern International — subsidized advisory for Bavarian exporters (you qualify in Nürnberg).", address: "Bayern International, Munich", action: "Apply Week 1" },
+];
+
+const EGYPT_OPS = [
+  { area: "EDA Registration", detail: "Egyptian Drug Authority registration required for all cosmetics. Your partner must hold these. Verify every SKU before ordering.", timeline: "3-12 months (partner should already have these)", risk: "Critical" },
+  { area: "Customs Broker", detail: "Licensed Egyptian customs broker required. Partner manages this. Recommended: use broker with ACID (Advance Cargo Information) system access.", timeline: "Appoint before first shipment", risk: "Critical" },
+  { area: "Free Zone Strategy", detail: "Port Said Free Zone: 1% service fee only vs standard 30-60% duties. If partner operates from free zone, duties collapse from €46K to ~€1,600 per shipment.", timeline: "Investigate Month 1 with partner", risk: "High Opportunity" },
+  { area: "Payment Collection", detail: "Partner collects from 20 sellers in EGP. Partner pays you in EUR via SWIFT. Always invoice in EUR. Use Paymob for any direct digital collections.", timeline: "Day 55-65 after shipment", risk: "Medium" },
+  { area: "ACID System", detail: "Egypt's Advance Cargo Information Declaration — mandatory pre-arrival notification. File 48 hours before vessel arrives.", timeline: "Freight forwarder files this", risk: "Critical" },
+  { area: "CAPMAS Fee", detail: "Egyptian statistics authority charges import fee per shipment (€100-300). Partner absorbs this.", timeline: "Per shipment", risk: "Low" },
+  { area: "Arabic Labeling", detail: "All products must have Arabic labels with: ingredients, manufacturer, importer name/address, expiry date, country of origin.", timeline: "Prepare before shipping", risk: "Critical" },
+  { area: "Halal Certification", detail: "Not mandatory for cosmetics but dramatically increases trust with Egyptian retailers. Some products qualify for Halal cert from German Halal body.", timeline: "Optional — Month 3+", risk: "Opportunity" },
+];
+
+// ─── CALCULATOR COMPONENT ──────────────────────────────────────────────────
+
+function DealCalculator() {
+  const [form, setForm] = useState({
+    productCost: 74800, freight: 7630, sellerDeposit: 50,
+    tradeMargin: 14, dutiesRate: 30, egpRate: 54,
+    numSellers: 20, productCategory: "cosmetics"
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: Number(v) }));
+
+  const vatPaid = form.productCost * 0.19;
+  const totalCost = form.productCost + vatPaid + form.freight;
+  const sellPrice = form.productCost * (1 + form.tradeMargin / 100);
+  const grossMargin = sellPrice - form.productCost - form.freight;
+  const netAfterTax = grossMargin * 0.7;
+  const totalProfit = netAfterTax + vatPaid;
+  const depositCollected = sellPrice * (form.sellerDeposit / 100);
+  const partnerLandedCost = sellPrice * (1 + form.dutiesRate / 100) * 1.14;
+  const partnerRetailNeeded = partnerLandedCost * 1.4;
+  const perSeller = sellPrice / form.numSellers;
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+      <div>
+        <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16, textTransform: "uppercase", letterSpacing: 2 }}>Input Parameters</p>
+        {[
+          ["Product Cost (€)", "productCost", 1000, 500000],
+          ["Freight & Docs (€)", "freight", 500, 50000],
+          ["Trade Margin (%)", "tradeMargin", 5, 40],
+          ["Seller Deposit (%)", "sellerDeposit", 20, 80],
+          ["Egypt Import Duty (%)", "dutiesRate", 0, 60],
+          ["Number of Sellers", "numSellers", 1, 200],
+        ].map(([label, key, min, max]) => (
+          <div key={key} style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ color: "#94a3b8", fontSize: 13 }}>{label}</span>
+              <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>
+                {key.includes("Cost") || key.includes("freight") || key.includes("Freight") ? `€${form[key].toLocaleString()}` : `${form[key]}${key.includes("Sellers") ? "" : "%"}`}
+              </span>
+            </div>
+            <input type="range" min={min} max={max} value={form[key]}
+              onChange={e => set(key, e.target.value)}
+              style={{ width: "100%", accentColor: "#3b82f6" }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 4, textTransform: "uppercase", letterSpacing: 2 }}>Live Results</p>
+        {[
+          ["VAT Paid (Recoverable)", `€${vatPaid.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#3b82f6"],
+          ["Your Sell Price to Partner", `€${sellPrice.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#8b5cf6"],
+          ["Gross Trading Margin", `€${grossMargin.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#10b981"],
+          ["Net After German Tax (30%)", `€${netAfterTax.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#10b981"],
+          ["+ VAT Refund (Month+2)", `€${vatPaid.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#f59e0b"],
+          ["Total Real Profit", `€${totalProfit.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#f59e0b"],
+          ["Deposit You Collect", `€${depositCollected.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#06b6d4"],
+          ["Partner Landed Cost (Egypt)", `€${partnerLandedCost.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#ef4444"],
+          ["Partner Min Retail (40% margin)", `€${partnerRetailNeeded.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#94a3b8"],
+          ["Avg Per Seller", `€${perSeller.toLocaleString("de-DE", {maximumFractionDigits: 0})}`, "#e2e8f0"],
+        ].map(([label, value, color]) => (
+          <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.04)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.07)" }}>
+            <span style={{ color: "#94a3b8", fontSize: 13 }}>{label}</span>
+            <span style={{ color, fontSize: 15, fontWeight: 700 }}>{value}</span>
+          </div>
+        ))}
+        <div style={{ padding: "14px", background: "linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.2))", borderRadius: 10, border: "1px solid rgba(99,102,241,0.4)", marginTop: 8 }}>
+          <p style={{ color: "#a5b4fc", fontSize: 12, margin: "0 0 4px" }}>Effective Return on Capital</p>
+          <p style={{ color: "#818cf8", fontSize: 28, fontWeight: 800, margin: 0 }}>
+            {form.productCost > 0 ? ((totalProfit / form.productCost) * 100).toFixed(1) : 0}%
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+
+export default function ExportOS() {
+  const [active, setActive] = useState("dashboard");
+  const [supplierTab, setSupplierTab] = useState("de");
+  const [expandedTimeline, setExpandedTimeline] = useState(null);
+
+  const s = {
+    app: { display: "flex", height: "100vh", background: "#0a0e1a", fontFamily: "'IBM Plex Mono', monospace", color: "#e2e8f0", overflow: "hidden" },
+    sidebar: { width: 220, background: "#0d1120", borderRight: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", flexShrink: 0 },
+    sideHeader: { padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" },
+    logo: { fontSize: 13, fontWeight: 800, color: "#3b82f6", letterSpacing: 3, textTransform: "uppercase" },
+    logoSub: { fontSize: 9, color: "#475569", letterSpacing: 2, marginTop: 2 },
+    nav: { flex: 1, overflowY: "auto", padding: "8px 0" },
+    navItem: (isActive) => ({
+      display: "flex", alignItems: "center", gap: 10, padding: "9px 16px",
+      cursor: "pointer", fontSize: 11, letterSpacing: 0.5,
+      color: isActive ? "#e2e8f0" : "#64748b",
+      background: isActive ? "rgba(59,130,246,0.15)" : "transparent",
+      borderLeft: isActive ? "2px solid #3b82f6" : "2px solid transparent",
+      transition: "all 0.15s",
+    }),
+    main: { flex: 1, overflowY: "auto", padding: 28 },
+    h1: { fontSize: 20, fontWeight: 800, color: "#f1f5f9", letterSpacing: 1, marginBottom: 4 },
+    h2: { fontSize: 14, fontWeight: 700, color: "#94a3b8", letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 },
+    card: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 20, marginBottom: 20 },
+    tag: (c) => ({ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: 1, background: c === "critical" ? "rgba(239,68,68,0.2)" : c === "high" ? "rgba(245,158,11,0.2)" : c === "medium" ? "rgba(59,130,246,0.2)" : "rgba(16,185,129,0.2)", color: c === "critical" ? "#ef4444" : c === "high" ? "#f59e0b" : c === "medium" ? "#3b82f6" : "#10b981" }),
+    pill: (c) => ({ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: `rgba(${c},0.15)`, color: `rgb(${c})` }),
+    grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 },
+    grid3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 },
+    table: { width: "100%", borderCollapse: "collapse" },
+    th: { textAlign: "left", padding: "10px 12px", fontSize: 10, color: "#475569", letterSpacing: 2, textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.07)" },
+    td: { padding: "11px 12px", fontSize: 12, color: "#94a3b8", borderBottom: "1px solid rgba(255,255,255,0.04)", verticalAlign: "top" },
+    tabBtn: (isActive) => ({ padding: "8px 18px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", letterSpacing: 1, border: "1px solid", borderColor: isActive ? "#3b82f6" : "rgba(255,255,255,0.1)", background: isActive ? "rgba(59,130,246,0.2)" : "transparent", color: isActive ? "#93c5fd" : "#64748b" }),
+  };
+
+  const kpis = [
+    { label: "Month 1 Target", value: "€106K", sub: "20 sellers × avg €5.3K", color: "#3b82f6" },
+    { label: "Net Profit M1", value: "€22.5K", sub: "Trading + VAT refund", color: "#10b981" },
+    { label: "VAT Engine", value: "€14.2K", sub: "Refund arrives Month 2", color: "#f59e0b" },
+    { label: "Active From", value: "Day 7", sub: "First shipment ready", color: "#8b5cf6" },
+    { label: "Starting Capital", value: "€0", sub: "Deposit-funded model", color: "#ef4444" },
+    { label: "Year 1 Net", value: "€839K", sub: "After tax provision", color: "#06b6d4" },
+  ];
+
+  return (
+    <div style={s.app}>
+      {/* Sidebar */}
+      <div style={s.sidebar}>
+        <div style={s.sideHeader}>
+          <div style={s.logo}>EXPORT OS</div>
+          <div style={s.logoSub}>GERMANY → MENA</div>
+          <div style={{ marginTop: 10, padding: "6px 10px", background: "rgba(16,185,129,0.15)", borderRadius: 6, border: "1px solid rgba(16,185,129,0.3)" }}>
+            <div style={{ fontSize: 9, color: "#6ee7b7", letterSpacing: 1 }}>STATUS</div>
+            <div style={{ fontSize: 11, color: "#34d399", fontWeight: 700 }}>READY TO LAUNCH</div>
+          </div>
+        </div>
+        <nav style={s.nav}>
+          {MODULES.map(m => (
+            <div key={m.id} style={s.navItem(active === m.id)} onClick={() => setActive(m.id)}>
+              <span style={{ fontSize: 14 }}>{m.icon}</span>
+              <span>{m.label}</span>
+            </div>
+          ))}
+        </nav>
+        <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ fontSize: 9, color: "#334155", letterSpacing: 1 }}>NÜRNBERG, BAVARIA, DE</div>
+          <div style={{ fontSize: 9, color: "#334155", marginTop: 2 }}>Gewerbesteuer: 467% Hebesatz</div>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div style={s.main}>
+
+        {/* DASHBOARD */}
+        {active === "dashboard" && (
+          <div>
+            <div style={{ marginBottom: 28 }}>
+              <div style={s.h1}>⬡ EXPORT OPERATING SYSTEM</div>
+              <div style={{ color: "#475569", fontSize: 12, letterSpacing: 1 }}>Germany × France → Egypt × MENA | Zero Capital | Solo + AI | Nürnberg HQ</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>
+              {kpis.map(k => (
+                <div key={k.label} style={{ ...s.card, borderColor: `${k.color}30`, marginBottom: 0 }}>
+                  <div style={{ fontSize: 10, color: "#64748b", letterSpacing: 2, textTransform: "uppercase" }}>{k.label}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: k.color, margin: "6px 0 2px" }}>{k.value}</div>
+                  <div style={{ fontSize: 11, color: "#475569" }}>{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={s.grid2}>
+              <div style={s.card}>
+                <div style={s.h2}>Business Flow</div>
+                {[
+                  ["01", "Sellers confirm orders + pay 50% deposit", "#3b82f6"],
+                  ["02", "You source from German/French suppliers", "#8b5cf6"],
+                  ["03", "QC + consolidate + EUR.1 certificate", "#10b981"],
+                  ["04", "Sea freight LCL Hamburg → Alexandria", "#f59e0b"],
+                  ["05", "Partner clears customs + delivers 20 sellers", "#ef4444"],
+                  ["06", "Collect balance + file VAT return", "#06b6d4"],
+                  ["07", "VAT refund arrives as bonus profit Month+2", "#10b981"],
+                ].map(([n, t, c]) => (
+                  <div key={n} style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: `${c}25`, border: `1px solid ${c}60`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: c, flexShrink: 0 }}>{n}</div>
+                    <span style={{ fontSize: 12, color: "#94a3b8", paddingTop: 3 }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={s.card}>
+                <div style={s.h2}>This Week Checklist</div>
+                {[
+                  ["Day 1", "Ordnungsamt Nürnberg — Gewerbeanmeldung", "critical"],
+                  ["Day 1", "Finanzamt — Steuernummer + USt-IdNr", "critical"],
+                  ["Day 1", "IHK Nürnberg — Registration", "critical"],
+                  ["Day 2", "Open Wise Business + Revolut Business", "critical"],
+                  ["Day 2", "Activate Claude API + Zapier", "high"],
+                  ["Day 3", "Apply for cargo + liability insurance", "high"],
+                  ["Day 4", "Send 20 supplier RFQs (DE + FR)", "high"],
+                  ["Day 5", "Brief Egyptian partner + collect deposits", "critical"],
+                  ["Day 6", "Launch Arabic Shopify store", "medium"],
+                  ["Day 7", "Book freight forwarder slot", "critical"],
+                ].map(([d, t, s]) => (
+                  <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    <span style={{ fontSize: 10, color: "#3b82f6", width: 36, flexShrink: 0 }}>{d}</span>
+                    <span style={{ ...s.tag?.(s), ...{display:"inline-block",padding:"1px 6px",borderRadius:4,fontSize:9,fontWeight:700,letterSpacing:1,background: s==="critical"?"rgba(239,68,68,0.2)":s==="high"?"rgba(245,158,11,0.2)":"rgba(59,130,246,0.2)",color: s==="critical"?"#ef4444":s==="high"?"#f59e0b":"#3b82f6",flexShrink:0} }}>{s.toUpperCase()}</span>
+                    <span style={{ fontSize: 11, color: "#94a3b8" }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={s.card}>
+              <div style={s.h2}>12-Month Revenue Trajectory</div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
+                {[106,130,160,200,245,290,320,350,380,410,440,470].map((v, i) => {
+                  const h = (v / 470) * 100;
+                  const colors = ["#3b82f6","#4f87d4","#6472c4","#7a6db4","#8b68a4","#9c6394","#a85e84","#b45974","#c05464","#cc4f54","#d84a44","#e44534"];
+                  return (
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 9, color: "#475569" }}>€{v}K</span>
+                      <div style={{ width: "100%", height: `${h}%`, background: colors[i], borderRadius: "4px 4px 0 0", minHeight: 4 }} />
+                      <span style={{ fontSize: 9, color: "#334155" }}>M{i+1}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LEGAL */}
+        {active === "legal" && (
+          <div>
+            <div style={s.h1}>⚖ Legal & Registration — Nürnberg</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Complete legal setup to operate as export trader from Bavaria</div>
+            <div style={s.grid2}>
+              {NURNBERG_SPECIFICS.map(n => (
+                <div key={n.item} style={s.card}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{n.item}</div>
+                    <span style={{ padding: "2px 8px", background: "rgba(59,130,246,0.2)", color: "#60a5fa", fontSize: 10, borderRadius: 4, fontWeight: 700, whiteSpace: "nowrap", marginLeft: 8 }}>{n.action}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>{n.detail}</div>
+                  <div style={{ fontSize: 11, color: "#475569" }}>📍 {n.address}</div>
+                </div>
+              ))}
+            </div>
+            <div style={s.card}>
+              <div style={s.h2}>Required Documents — Day 1 Pack</div>
+              <div style={s.grid3}>
+                {[
+                  ["Personal ID / Passport", "For Gewerbeanmeldung"],
+                  ["Meldebescheinigung", "Proof of address in Nürnberg"],
+                  ["Bank account details", "For tax office registration"],
+                  ["Business description", "2-3 sentences: export trading"],
+                  ["Digital signature", "For ELSTER (tax portal)"],
+                  ["Email address (business)", "For IHK + Finanzamt"],
+                ].map(([d, s]) => (
+                  <div key={d} style={{ padding: "12px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 600 }}>{d}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 3 }}>{s}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAX */}
+        {active === "tax" && (
+          <div>
+            <div style={s.h1}>📊 Tax System — Nürnberg</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Complete tax obligations for sole trader export business in Nürnberg</div>
+            <div style={s.grid3}>
+              {[
+                { label: "Nürnberg Hebesatz", value: "467%", detail: "Higher than Germany avg (380%)", color: "#ef4444" },
+                { label: "Effective Trade Tax", value: "~16.3%", detail: "On trading profit", color: "#f59e0b" },
+                { label: "Income Tax", value: "14–45%", detail: "Progressive on net profit", color: "#3b82f6" },
+                { label: "Export VAT Rate", value: "0%", detail: "On your sales to Egypt", color: "#10b981" },
+                { label: "VAT on Purchases", value: "19%", detail: "Fully recoverable", color: "#8b5cf6" },
+                { label: "Total Effective Rate", value: "~30%", detail: "With Steuerberater optimization", color: "#06b6d4" },
+              ].map(k => (
+                <div key={k.label} style={{ ...s.card, marginBottom: 0, borderColor: `${k.color}30` }}>
+                  <div style={{ fontSize: 10, color: "#64748b", letterSpacing: 2, textTransform: "uppercase" }}>{k.label}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: k.color, margin: "6px 0 2px" }}>{k.value}</div>
+                  <div style={{ fontSize: 11, color: "#475569" }}>{k.detail}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 20, ...s.card }}>
+              <div style={s.h2}>Annual Tax Calendar</div>
+              <table style={s.table}>
+                <thead>
+                  <tr>{["Deadline","Task","Detail","Type"].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {TAX_CALENDAR.map(t => (
+                    <tr key={t.task + t.month}>
+                      <td style={{ ...s.td, color: "#3b82f6", fontWeight: 700, whiteSpace: "nowrap" }}>{t.month}</td>
+                      <td style={{ ...s.td, color: "#e2e8f0", fontWeight: 600 }}>{t.task}</td>
+                      <td style={s.td}>{t.detail}</td>
+                      <td style={s.td}>
+                        <span style={{ padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: t.type === "VAT" ? "rgba(59,130,246,0.2)" : t.type === "Income" ? "rgba(245,158,11,0.2)" : "rgba(16,185,129,0.2)", color: t.type === "VAT" ? "#60a5fa" : t.type === "Income" ? "#fbbf24" : "#34d399" }}>{t.type}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={s.card}>
+              <div style={s.h2}>VAT Refund Workflow</div>
+              <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
+                {[
+                  ["Pay suppliers", "€74,800 + 19% VAT = €89,012", "#3b82f6"],
+                  ["Ship goods", "Export declaration filed — MRN confirmed", "#8b5cf6"],
+                  ["File UStVA", "Monthly return via ELSTER by 10th", "#10b981"],
+                  ["Finanzamt reviews", "4–8 weeks processing time", "#f59e0b"],
+                  ["Refund arrives", "€14,212 into your German account", "#ef4444"],
+                ].map(([title, detail, color], i, arr) => (
+                  <div key={title} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+                    <div style={{ width: "100%", padding: "14px 10px", background: `${color}15`, border: `1px solid ${color}40`, borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, color, fontWeight: 700, marginBottom: 6 }}>{title}</div>
+                      <div style={{ fontSize: 10, color: "#64748b" }}>{detail}</div>
+                    </div>
+                    {i < arr.length - 1 && <div style={{ fontSize: 20, color: "#334155", margin: "0 -8px", zIndex: 1, alignSelf: "center", position: "absolute", marginTop: 18 }}>→</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* BANKING */}
+        {active === "banking" && (
+          <div>
+            <div style={s.h1}>🏦 Banking & FX Architecture</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Multi-bank strategy for zero-capital export operations</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
+              {BANKS.map(b => (
+                <div key={b.name} style={{ ...s.card, display: "grid", gridTemplateColumns: "200px 1fr auto", gap: 20, alignItems: "start", marginBottom: 0 }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0" }}>{b.name}</div>
+                    <div style={{ fontSize: 10, color: "#3b82f6", marginTop: 3, letterSpacing: 1 }}>{b.type}</div>
+                    <div style={{ fontSize: 12, color: "#f59e0b", marginTop: 6 }}>{b.cost}</div>
+                    <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>Best for: {b.best}</div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {b.features.map(f => <span key={f} style={{ padding: "3px 8px", background: "rgba(255,255,255,0.06)", borderRadius: 4, fontSize: 11, color: "#94a3b8" }}>{f}</span>)}
+                  </div>
+                  <div style={{ padding: "8px 16px", background: "rgba(59,130,246,0.2)", borderRadius: 8, fontSize: 11, color: "#60a5fa", fontWeight: 700, whiteSpace: "nowrap", cursor: "pointer", textAlign: "center" }}>Open →</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...s.card, marginTop: 20 }}>
+              <div style={s.h2}>FX Strategy — EUR/EGP</div>
+              <div style={s.grid3}>
+                {[
+                  ["Always invoice in EUR", "Never accept EGP — devaluation risk is your partner's, not yours"],
+                  ["Monitor EGP rate daily", "Set alerts on Wise for EUR/EGP rate movements above 2%"],
+                  ["Use Revolut for FX hedge", "Forward contracts available for large orders — lock in rate"],
+                  ["SWIFT for large transfers", "Wise SWIFT for amounts over €10K — cheapest route"],
+                  ["Wise for daily operations", "Real exchange rate, batch payments, multi-currency account"],
+                  ["Letter of Credit for €50K+", "Use Commerzbank LC for large orders — payment guaranteed"],
+                ].map(([t, d]) => (
+                  <div key={t} style={{ padding: 14, background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 600, marginBottom: 6 }}>{t}</div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>{d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* INSURANCE */}
+        {active === "insurance" && (
+          <div>
+            <div style={s.h1}>🛡 Insurance Stack</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Complete insurance coverage for Germany → Egypt export operations</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+              {INSURANCE.map(ins => (
+                <div key={ins.type} style={{ ...s.card, display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 20, alignItems: "center", marginBottom: 0 }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{ins.type}</div>
+                      {ins.mandatory && <span style={{ padding: "2px 7px", background: "rgba(239,68,68,0.2)", color: "#ef4444", fontSize: 9, borderRadius: 4, fontWeight: 700 }}>MANDATORY</span>}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#94a3b8" }}>{ins.coverage}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3 }}>Provider</div>
+                    <div style={{ fontSize: 12, color: "#3b82f6" }}>{ins.provider}</div>
+                    <div style={{ fontSize: 12, color: "#f59e0b", marginTop: 4 }}>{ins.cost}</div>
+                  </div>
+                  <div style={{ padding: "8px 14px", background: ins.mandatory ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.05)", borderRadius: 8, fontSize: 11, color: ins.mandatory ? "#ef4444" : "#64748b", fontWeight: 700, whiteSpace: "nowrap", textAlign: "center" }}>
+                    {ins.mandatory ? "Get Day 3" : "Optional"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SUPPLIERS */}
+        {active === "suppliers" && (
+          <div>
+            <div style={s.h1}>🏭 Mega Supplier Directory</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 20 }}>Verified B2B sources — Germany & France — applicable to any product category</div>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+              <button style={s.tabBtn(supplierTab === "de")} onClick={() => setSupplierTab("de")}>🇩🇪 Germany ({SUPPLIERS_DE.length})</button>
+              <button style={s.tabBtn(supplierTab === "fr")} onClick={() => setSupplierTab("fr")}>🇫🇷 France ({SUPPLIERS_FR.length})</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+              {(supplierTab === "de" ? SUPPLIERS_DE : SUPPLIERS_FR).map(s => (
+                <div key={s.name} style={{ padding: 18, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, display: "grid", gridTemplateColumns: "220px 1fr 120px 120px", gap: 16, alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#e2e8f0" }}>{s.name}</div>
+                    <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>📍 {s.city}</div>
+                    <div style={{ fontSize: 10, color: "#3b82f6", marginTop: 3 }}>{s.category}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Brands & Products</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                      {s.brands.map(b => <span key={b} style={{ padding: "2px 8px", background: "rgba(99,102,241,0.2)", borderRadius: 4, fontSize: 11, color: "#a5b4fc" }}>{b}</span>)}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#475569", marginTop: 6 }}>✉ {s.contact}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: "#64748b" }}>Min Order</div>
+                    <div style={{ fontSize: 13, color: "#f59e0b", fontWeight: 700 }}>{s.moq}</div>
+                    <div style={{ fontSize: 10, color: "#64748b", marginTop: 6 }}>Margin</div>
+                    <div style={{ fontSize: 13, color: "#10b981", fontWeight: 700 }}>{s.margin}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ padding: "8px 14px", background: "rgba(59,130,246,0.2)", borderRadius: 8, fontSize: 11, color: "#60a5fa", fontWeight: 700, cursor: "pointer", marginBottom: 8 }}>Contact →</div>
+                    <div style={{ fontSize: 10, color: "#334155" }}>{s.website}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* PRICING TOOLS */}
+        {active === "pricing" && (
+          <div>
+            <div style={s.h1}>💡 Price Intelligence Tools</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Find best wholesale prices across any product category</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              {PRICE_TOOLS.map(t => (
+                <div key={t.name} style={{ ...s.card, marginBottom: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{t.name}</div>
+                      <div style={{ fontSize: 10, color: "#3b82f6", marginTop: 2 }}>{t.type}</div>
+                    </div>
+                    <span style={{ padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: t.free ? "rgba(16,185,129,0.2)" : "rgba(245,158,11,0.2)", color: t.free ? "#10b981" : "#f59e0b" }}>{t.free ? "FREE" : "PAID"}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>{t.use}</div>
+                  <div style={{ fontSize: 11, color: "#475569" }}>🔗 {t.url}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...s.card, marginTop: 20 }}>
+              <div style={s.h2}>AI-Powered Price Workflow</div>
+              <div style={s.grid3}>
+                {[
+                  ["Step 1: Define product", "Tell Claude exactly what you need: brand, SKU, quantity, destination. AI generates RFQ in German and French."],
+                  ["Step 2: Mass outreach", "Zapier sends RFQ to 20+ suppliers simultaneously. AI personalizes each email. Track responses in Notion."],
+                  ["Step 3: Price comparison", "Claude receives all quotes, builds comparison table, ranks by margin potential, flags best offers."],
+                  ["Step 4: Negotiation brief", "AI generates negotiation script for each supplier — what to ask for, what to offer, red lines."],
+                  ["Step 5: Margin check", "Use the Deal Calculator in this OS — enter supplier price, see instant margin and Egypt retail viability."],
+                  ["Step 6: Order confirmation", "Claude generates purchase order in German, packing specs, and delivery instructions automatically."],
+                ].map(([t, d]) => (
+                  <div key={t} style={{ padding: 14, background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ fontSize: 11, color: "#3b82f6", fontWeight: 700, marginBottom: 6 }}>{t}</div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>{d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LOGISTICS */}
+        {active === "logistics" && (
+          <div>
+            <div style={s.h1}>🚢 Logistics Engine</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>End-to-end shipping from Nürnberg to Egyptian doorsteps</div>
+            <div style={s.grid2}>
+              <div style={s.card}>
+                <div style={s.h2}>Recommended Freight Forwarders</div>
+                {[
+                  { name: "DB Schenker Nürnberg", route: "DE → Egypt", service: "LCL + FCL + Air", contact: "nuernberg@dbschenker.com" },
+                  { name: "Kuehne+Nagel Nürnberg", route: "DE → Egypt", service: "LCL sea, air, road", contact: "nuernberg@kuehne-nagel.com" },
+                  { name: "Hellmann Worldwide", route: "DE → MENA", service: "LCL, multimodal", contact: "nuernberg@hellmann.com" },
+                  { name: "DHL Global Forwarding", route: "DE → Egypt", service: "Air + Sea LCL", contact: "via dhl.de" },
+                  { name: "Scan Global Logistics", route: "DE → Egypt", service: "Competitive LCL rates", contact: "germany@scangl.com" },
+                ].map(f => (
+                  <div key={f.name} style={{ padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 600 }}>{f.name}</div>
+                    <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: "#3b82f6" }}>{f.route}</span>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>{f.service}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{f.contact}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={s.card}>
+                <div style={s.h2}>Shipping Options</div>
+                {[
+                  { mode: "Sea LCL", time: "12–16 days", cost: "€150–300/CBM", best: "Your primary method — €75K orders", color: "#10b981" },
+                  { mode: "Sea FCL (20ft)", time: "12–16 days", cost: "€1,800–2,500 flat", best: "Orders above €200K", color: "#3b82f6" },
+                  { mode: "Air Freight", time: "3–5 days", cost: "€4–8/kg", best: "Urgent, high-value, small volume", color: "#f59e0b" },
+                  { mode: "Road + Sea", time: "18–25 days", cost: "Lower total", best: "Flexible pickup from suppliers", color: "#8b5cf6" },
+                ].map(m => (
+                  <div key={m.mode} style={{ padding: "12px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: `1px solid ${m.color}30`, marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 13, color: m.color, fontWeight: 700 }}>{m.mode}</span>
+                      <span style={{ fontSize: 12, color: "#f59e0b" }}>{m.cost}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{m.time} transit • {m.best}</div>
+                  </div>
+                ))}
+                <div style={{ ...s.card, marginTop: 16, background: "rgba(59,130,246,0.1)", borderColor: "rgba(59,130,246,0.3)" }}>
+                  <div style={{ fontSize: 12, color: "#60a5fa", fontWeight: 700, marginBottom: 6 }}>Consolidation Point</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>All 4-6 suppliers ship to one forwarder warehouse (Hamburg or Bremen for sea). Single customs entry. One Bill of Lading. Lower cost.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOMS */}
+        {active === "customs" && (
+          <div>
+            <div style={s.h1}>📋 Customs & Documentation</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Every document needed for Germany export + Egypt import</div>
+            <div style={s.grid2}>
+              <div style={s.card}>
+                <div style={s.h2}>Germany Export Documents</div>
+                {[
+                  { doc: "Ausfuhranmeldung (ATLAS)", who: "Freight forwarder", why: "Legal requirement + VAT proof", critical: true },
+                  { doc: "Commercial Invoice", who: "You (AI-generated)", why: "Customs valuation", critical: true },
+                  { doc: "Packing List", who: "You (AI-generated)", why: "Inspection + delivery", critical: true },
+                  { doc: "EUR.1 Certificate", who: "IHK Nürnberg (€25-50)", why: "Duty reduction 20-30%", critical: true },
+                  { doc: "Certificate of Origin", who: "IHK Nürnberg (€30-60)", why: "Authenticity proof", critical: true },
+                  { doc: "MSDS Sheets", who: "Your suppliers provide", why: "Cosmetics requirement", critical: true },
+                  { doc: "Cargo Insurance Cert", who: "Your insurer", why: "Protection proof", critical: false },
+                  { doc: "Bill of Lading", who: "Freight forwarder", why: "Title to goods", critical: true },
+                ].map(d => (
+                  <div key={d.doc} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.critical ? "#ef4444" : "#64748b", flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 600 }}>{d.doc}</div>
+                      <div style={{ fontSize: 11, color: "#64748b" }}>{d.who} — {d.why}</div>
+                    </div>
+                    {d.critical && <span style={{ fontSize: 9, color: "#ef4444", fontWeight: 700 }}>MUST</span>}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={s.card}>
+                  <div style={s.h2}>Egypt Import Requirements</div>
+                  {[
+                    { req: "ACID Declaration", detail: "File 48h before vessel arrival — mandatory" },
+                    { req: "EDA Registration", detail: "Per SKU — partner must provide certs" },
+                    { req: "Arabic Labels", detail: "Ingredients + importer + expiry in Arabic" },
+                    { req: "Import License", detail: "Partner's licensed importer registration" },
+                    { req: "CAPMAS Registration", detail: "Egyptian statistics — one-time fee" },
+                    { req: "Halal Cert (optional)", detail: "Boosts trust +20% with retailers" },
+                  ].map(r => (
+                    <div key={r.req} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                      <div style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 600 }}>{r.req}</div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{r.detail}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={s.card}>
+                  <div style={s.h2}>EUR.1 Certificate Impact</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div style={{ padding: 12, background: "rgba(239,68,68,0.1)", borderRadius: 8, border: "1px solid rgba(239,68,68,0.3)", textAlign: "center" }}>
+                      <div style={{ fontSize: 11, color: "#ef4444" }}>Without EUR.1</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#ef4444" }}>30–60%</div>
+                      <div style={{ fontSize: 11, color: "#64748b" }}>Import duty</div>
+                    </div>
+                    <div style={{ padding: 12, background: "rgba(16,185,129,0.1)", borderRadius: 8, border: "1px solid rgba(16,185,129,0.3)", textAlign: "center" }}>
+                      <div style={{ fontSize: 11, color: "#10b981" }}>With EUR.1</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#10b981" }}>0–10%</div>
+                      <div style={{ fontSize: 11, color: "#64748b" }}>Import duty</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, padding: 12, background: "rgba(245,158,11,0.1)", borderRadius: 8 }}>
+                    <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>Saves ~€20,000 per €100K shipment</div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>EU-Egypt Association Agreement in force. IHK Nürnberg issues EUR.1 — cost €25-50 per cert.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* WEBSITE */}
+        {active === "website" && (
+          <div>
+            <div style={s.h1}>🌐 Website & Brand Architecture</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Full digital presence — B2B + B2C across Germany and MENA</div>
+            <div style={s.grid2}>
+              <div style={s.card}>
+                <div style={s.h2}>B2B Website (yourcompany.de)</div>
+                {[
+                  ["Platform", "Webflow or Next.js on Vercel", "Professional, fast, easy to update"],
+                  ["Language", "German + English + Arabic toggle", "Serve all markets from one site"],
+                  ["Purpose", "Supplier trust + seller acquisition", "Looks like established company"],
+                  ["Key pages", "Home, Products, For Sellers, About, Contact", "Minimal but complete"],
+                  ["Lead capture", "Seller application form", "Feeds directly into Notion CRM"],
+                  ["Cost", "Webflow: €23/mo or Vercel: Free", "Domain: €12/year"],
+                ].map(([k, v, d]) => (
+                  <div key={k} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", display: "grid", gridTemplateColumns: "100px 1fr" }}>
+                    <span style={{ fontSize: 11, color: "#64748b" }}>{k}</span>
+                    <div><div style={{ fontSize: 12, color: "#e2e8f0" }}>{v}</div><div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{d}</div></div>
+                  </div>
+                ))}
+              </div>
+              <div style={s.card}>
+                <div style={s.h2}>B2C Arabic Store (shopify)</div>
+                {[
+                  ["Platform", "Shopify (Arabic RTL theme)", "Best for Arab market e-commerce"],
+                  ["Language", "Arabic primary, English secondary", "RTL layout, Arabic checkout"],
+                  ["Payment", "Stripe + Paymob + Fawry Egypt", "All Egyptian payment methods"],
+                  ["Delivery", "Partner handles Egypt fulfilment", "48h delivery in Cairo"],
+                  ["Marketing", "Instagram + TikTok shop integrated", "Direct purchase from social"],
+                  ["Cost", "Shopify Basic €29/mo", "+ Arabic translation app €20/mo"],
+                ].map(([k, v, d]) => (
+                  <div key={k} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", display: "grid", gridTemplateColumns: "100px 1fr" }}>
+                    <span style={{ fontSize: 11, color: "#64748b" }}>{k}</span>
+                    <div><div style={{ fontSize: 12, color: "#e2e8f0" }}>{v}</div><div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{d}</div></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={s.card}>
+              <div style={s.h2}>Brand Identity Quick Setup</div>
+              <div style={s.grid3}>
+                {[
+                  { element: "Brand Name", recommendation: "GermanBeauty.eg / DeutschQuality / BerlinCare", tool: "Namechk.com for availability" },
+                  { element: "Logo", recommendation: "Minimalist German flag + product icon. Professional.", tool: "Looka.com (€20 one-time)" },
+                  { element: "Color Palette", recommendation: "Black + Gold + White — premium signal in Arab market", tool: "Coolors.co" },
+                  { element: "Arabic Tagline", recommendation: "جودة ألمانية أصيلة (Authentic German Quality)", tool: "Claude translates + refines" },
+                  { element: "Photography", recommendation: "Use AI-generated product lifestyle images for Arabic market", tool: "Midjourney / DALL-E" },
+                  { element: "Social Handles", recommendation: "@germanbeauty.eg on Instagram + TikTok", tool: "Register Day 2" },
+                ].map(b => (
+                  <div key={b.element} style={{ padding: 14, background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ fontSize: 10, color: "#3b82f6", letterSpacing: 1, marginBottom: 4 }}>{b.element.toUpperCase()}</div>
+                    <div style={{ fontSize: 12, color: "#e2e8f0", marginBottom: 6 }}>{b.recommendation}</div>
+                    <div style={{ fontSize: 11, color: "#475569" }}>Tool: {b.tool}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI AGENTS */}
+        {active === "aiagents" && (
+          <div>
+            <div style={s.h1}>🤖 AI Agent Stack</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Your 10-person team at €162/month — complete automation infrastructure</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12, marginBottom: 20 }}>
+              {AI_STACK.map(a => (
+                <div key={a.tool} style={{ padding: 18, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, display: "grid", gridTemplateColumns: "200px 1fr auto", gap: 16, alignItems: "start" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#e2e8f0" }}>{a.tool}</div>
+                    <div style={{ fontSize: 10, color: "#3b82f6", marginTop: 3 }}>{a.role}</div>
+                    <div style={{ fontSize: 13, color: "#f59e0b", marginTop: 6, fontWeight: 700 }}>{a.cost}</div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {a.tasks.map(t => <span key={t} style={{ padding: "3px 8px", background: "rgba(255,255,255,0.05)", borderRadius: 4, fontSize: 11, color: "#94a3b8" }}>{t}</span>)}
+                  </div>
+                  <span style={{ padding: "4px 12px", borderRadius: 6, fontSize: 10, fontWeight: 700, background: a.priority === "Essential" ? "rgba(239,68,68,0.2)" : a.priority === "High" ? "rgba(245,158,11,0.2)" : "rgba(59,130,246,0.2)", color: a.priority === "Essential" ? "#ef4444" : a.priority === "High" ? "#f59e0b" : "#60a5fa", whiteSpace: "nowrap", height: "fit-content" }}>{a.priority}</span>
+                </div>
+              ))}
+            </div>
+            <div style={s.card}>
+              <div style={s.h2}>Total Monthly AI Cost</div>
+              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                <div style={{ fontSize: 36, fontWeight: 800, color: "#10b981" }}>€162/mo</div>
+                <div style={{ fontSize: 13, color: "#64748b" }}>vs €8,000–15,000/month for equivalent human team<br/>You save <span style={{ color: "#10b981" }}>€7,838–14,838/month</span> from Day 1</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TIMELINE */}
+        {active === "timeline" && (
+          <div>
+            <div style={s.h1}>📅 Launch Timeline — 7 Days to Active</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Every task, every deadline, every action from today to first shipment</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {TIMELINE.map((t, i) => (
+                <div key={t.day} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 20px", background: "rgba(255,255,255,0.04)", cursor: "pointer" }} onClick={() => setExpandedTimeline(expandedTimeline === i ? null : i)}>
+                    <div style={{ width: 60, textAlign: "center", padding: "4px 0", background: t.status === "critical" ? "rgba(239,68,68,0.2)" : t.status === "high" ? "rgba(245,158,11,0.2)" : "rgba(59,130,246,0.2)", borderRadius: 6, fontSize: 11, fontWeight: 800, color: t.status === "critical" ? "#ef4444" : t.status === "high" ? "#f59e0b" : "#3b82f6", flexShrink: 0 }}>{t.day}</div>
+                    <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>{t.title}</div>
+                    <div style={{ fontSize: 11, color: "#475569" }}>{t.tasks.length} tasks</div>
+                    <div style={{ color: "#475569", fontSize: 16 }}>{expandedTimeline === i ? "▲" : "▼"}</div>
+                  </div>
+                  {expandedTimeline === i && (
+                    <div style={{ padding: "14px 20px 18px", background: "rgba(0,0,0,0.2)" }}>
+                      {t.tasks.map((task, j) => (
+                        <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
+                          <div style={{ width: 20, height: 20, borderRadius: 4, border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#475569", flexShrink: 0, marginTop: 1 }}>✓</div>
+                          <span style={{ fontSize: 13, color: "#94a3b8" }}>{task}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* EGYPT OPS */}
+        {active === "egypt" && (
+          <div>
+            <div style={s.h1}>🇪🇬 Egypt Operations Hub</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Everything your Egyptian partner must execute — monitored by you remotely</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+              {EGYPT_OPS.map(op => (
+                <div key={op.area} style={{ ...s.card, display: "grid", gridTemplateColumns: "200px 1fr 120px 120px", gap: 20, alignItems: "center", marginBottom: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{op.area}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>{op.detail}</div>
+                  <div style={{ fontSize: 11, color: "#64748b" }}>{op.timeline}</div>
+                  <span style={{ padding: "4px 12px", borderRadius: 6, fontSize: 10, fontWeight: 700, textAlign: "center", background: op.risk === "Critical" ? "rgba(239,68,68,0.2)" : op.risk === "High Opportunity" ? "rgba(16,185,129,0.2)" : op.risk === "Medium" ? "rgba(245,158,11,0.2)" : "rgba(59,130,246,0.2)", color: op.risk === "Critical" ? "#ef4444" : op.risk === "High Opportunity" ? "#10b981" : op.risk === "Medium" ? "#f59e0b" : "#60a5fa" }}>{op.risk}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...s.card, marginTop: 20 }}>
+              <div style={s.h2}>Free Zone Strategy — Highest Impact</div>
+              <div style={s.grid2}>
+                <div style={{ padding: 16, background: "rgba(239,68,68,0.1)", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)" }}>
+                  <div style={{ fontSize: 12, color: "#ef4444", fontWeight: 700, marginBottom: 8 }}>Standard Import Route</div>
+                  {["Import duty: 30-60% of CIF value", "Egyptian VAT: 14% on CIF+duty", "Additional levies: 5%", "Total extra cost: ~€46,900 per €100K", "Partner margin severely compressed"].map(i => <div key={i} style={{ fontSize: 11, color: "#94a3b8", marginBottom: 4 }}>✗ {i}</div>)}
+                </div>
+                <div style={{ padding: 16, background: "rgba(16,185,129,0.1)", borderRadius: 10, border: "1px solid rgba(16,185,129,0.3)" }}>
+                  <div style={{ fontSize: 12, color: "#10b981", fontWeight: 700, marginBottom: 8 }}>Free Zone Route (Port Said)</div>
+                  {["Service fee only: 1% of CIF", "Duties deferred until retail sale", "Total extra cost: ~€1,600 per €100K", "Saving: €45,300 per shipment", "Highest margin model available"].map(i => <div key={i} style={{ fontSize: 11, color: "#94a3b8", marginBottom: 4 }}>✓ {i}</div>)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CALCULATOR */}
+        {active === "calculator" && (
+          <div>
+            <div style={s.h1}>🧮 Live Deal Calculator</div>
+            <div style={{ color: "#475569", fontSize: 12, marginBottom: 24 }}>Real-time margin analysis — works for any product category</div>
+            <div style={s.card}>
+              <DealCalculator />
+            </div>
+            <div style={s.card}>
+              <div style={s.h2}>Monthly P&L Template</div>
+              <table style={s.table}>
+                <thead>
+                  <tr>{["Line Item","Month 1","Month 3","Month 6","Month 12"].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Order Volume", "€106K", "€160K", "€290K", "€470K"],
+                    ["Product Cost (68%)", "€72K", "€109K", "€197K", "€320K"],
+                    ["VAT Paid (recoverable)", "€14.2K", "€20.7K", "€37.5K", "€60.8K"],
+                    ["Freight & Logistics", "€7.6K", "€11.5K", "€20.8K", "€33.8K"],
+                    ["Partner Commission (8%)", "€8.5K", "€12.8K", "€23.2K", "€37.6K"],
+                    ["Overhead (AI + admin)", "€0.5K", "€0.8K", "€1.6K", "€2.2K"],
+                    ["Trading Profit", "€8.4K", "€26.8K", "€50.7K", "€81.8K"],
+                    ["VAT Refund (prev month)", "€0", "€18K", "€34.8K", "€62.7K"],
+                    ["Gross Before Tax", "€8.4K", "€44.8K", "€85.5K", "€144.5K"],
+                    ["German Tax (30%)", "-€2.5K", "-€8K", "-€15.4K", "-€26K"],
+                    ["NET PROFIT", "€5.9K", "€36.8K", "€70.1K", "€118.5K"],
+                  ].map(([label, ...vals]) => (
+                    <tr key={label} style={{ background: label === "NET PROFIT" ? "rgba(16,185,129,0.08)" : "transparent" }}>
+                      <td style={{ ...s.td, color: label === "NET PROFIT" ? "#10b981" : label.startsWith("Trading") || label.startsWith("Gross") ? "#e2e8f0" : "#94a3b8", fontWeight: label === "NET PROFIT" ? 800 : 400 }}>{label}</td>
+                      {vals.map((v, i) => <td key={i} style={{ ...s.td, color: label === "NET PROFIT" ? "#10b981" : v.startsWith("-") ? "#ef4444" : "#94a3b8", fontWeight: label === "NET PROFIT" ? 800 : 400 }}>{v}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ExportOS />);
+    </script>
+</body>
+</html>
